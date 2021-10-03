@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://192.168.1.166:8080",
+    "https://all-f1.herokuapp.com",
 ]
 
 MIDDLEWARE = [
