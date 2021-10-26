@@ -4,14 +4,19 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 import requests
 import json
+from django.core.cache import cache
 
 @api_view()
 def getF1DriverStandings(request, year_slug):
     year = year_slug
-    url = f"http://ergast.com/api/f1/{year}/driverStandings.json"
-    response = requests.get(url)
-    responseData = json.loads(response.text)
-    data = responseData.get("MRData").get("StandingsTable").get("StandingsLists")[0].get("DriverStandings")
+    cache_key = f"DriverStandings_{year}"
+    data = cache.get(cache_key, None)
+    if not data:
+        url = f"http://ergast.com/api/f1/{year}/driverStandings.json"
+        response = requests.get(url)
+        responseData = json.loads(response.text)
+        data = responseData.get("MRData").get("StandingsTable").get("StandingsLists")[0].get("DriverStandings")
+        cache.set(cache_key, data, 60)
 
     return Response(data)
 
