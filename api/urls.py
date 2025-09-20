@@ -2,6 +2,8 @@ from django.urls import path
 from api import views
 
 urlpatterns = [
+    path('health/', views.healthCheck),
+    path('clear-cache/', views.clearCache),
     path('driver-standings/<slug:year_slug>/', views.getF1DriverStandings),
     path('constructor-standings/<slug:year_slug>/', views.getF1ConstructorStandings),
     path('drivers/<slug:year_slug>/', views.getF1Drivers),
