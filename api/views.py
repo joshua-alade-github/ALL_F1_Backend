@@ -18,13 +18,13 @@ def get_cache_timeout(year):
         year_int = int(year) if year else current_year
         
         if year_int < current_year:
-            return 86400 * 7  # 7 days for past seasons
+            return 86400 * 7
         elif year_int == current_year:
-            return 3600  # 1 hour for current season
+            return 3600
         else:
-            return 86400  # 1 day for future season
+            return 86400
     except:
-        return 3600  # Default 1 hour
+        return 3600
 
 def handle_api_error(error, data_type):
     """Consistent error handling for API calls"""
@@ -154,7 +154,48 @@ def getF1Circuits(request, year_slug):
 
 @api_view(['GET'])
 def getF1Seasons(request):
-    # Add pagination support
+    page = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 30))
+    
+    cache_key = f"AllSeasons"
+    all_seasons_data = cache.get(cache_key, None)
+    
+    if not all_seasons_data:
+        try:
+            url = f"{ERGAST_BASE_URL}/seasons.json?limit=100"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            responseData = response.json()
+            
+            mrdata = responseData.get("MRData", {})
+            all_seasons = mrdata.get("SeasonTable", {}).get("Seasons", [])
+            
+            all_seasons.sort(key=lambda x: int(x.get('season', 0)), reverse=True)
+            
+            all_seasons_data = all_seasons
+            cache.set(cache_key, all_seasons_data, 86400 * 7)
+        except requests.exceptions.RequestException as e:
+            return handle_api_error(e, "seasons")
+        except Exception as e:
+            return handle_api_error(e, "seasons")
+    
+    total = len(all_seasons_data)
+    start_index = (page - 1) * per_page
+    end_index = min(start_index + per_page, total)
+    
+    paginated_seasons = all_seasons_data[start_index:end_index]
+    
+    data = {
+        'seasons': paginated_seasons,
+        'pagination': {
+            'page': page,
+            'per_page': per_page,
+            'total': total,
+            'total_pages': (total + per_page - 1) // per_page
+        }
+    }
+    
+    return Response({'error': False, 'data': data})
     page = int(request.GET.get('page', 1))
     per_page = int(request.GET.get('per_page', 30))
     offset = (page - 1) * per_page
@@ -183,7 +224,7 @@ def getF1Seasons(request):
                 }
             }
             
-            cache.set(cache_key, data, 86400 * 7)  # Cache for 7 days
+            cache.set(cache_key, data, 86400 * 7)
         except requests.exceptions.RequestException as e:
             return handle_api_error(e, "seasons")
         except Exception as e:
@@ -312,7 +353,6 @@ def getF1Schedule(request, year_slug):
 @api_view(['POST'])
 @csrf_exempt
 def clearCache(request):
-    """Clear all cached data"""
     try:
         cache.clear()
         return Response({
@@ -328,7 +368,6 @@ def clearCache(request):
 
 @api_view(['GET'])
 def healthCheck(request):
-    """Health check endpoint"""
     try:
         url = f"{ERGAST_BASE_URL}/seasons.json?limit=1"
         response = requests.get(url, timeout=5)
