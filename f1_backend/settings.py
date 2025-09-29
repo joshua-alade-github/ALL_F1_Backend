@@ -39,7 +39,7 @@ if not DEBUG:
     
 allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '')
 if allowed_hosts_env:
-    ALLOWED_HOSTS.extend([host.strip() for host in allowed_hosts_env.split(',') if host.strip()])
+    ALLOWED_HOSTS.extend(allowed_hosts_env.split(','))
 
 
 # Application definition
@@ -169,4 +169,3 @@ CACHES = {
         }
     }
 }
-
